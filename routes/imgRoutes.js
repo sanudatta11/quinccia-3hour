@@ -171,6 +171,93 @@ router.addComments = (req,res,next) => {
     }
 };
 
+router.addCommentSocket = (data) => {
+    try {
+        var resp;
+        let imgId = data.imgId;
+        let parentCommentId = data.parentCommentId;
+        if(ObjectId.isValid(imgId) && (!parentCommentId || ObjectId.isValid(parentCommentId))){
+            async.waterfall([
+                function (callback) {
+                    console.log('Checking image Present');
+                    Img.findOne({
+                        _id : imgId,
+                        userId : req.userId
+                    },function (err,imgObj) {
+                        if(err)
+                        {
+                            resp.status=500;
+                            resp.message = err;
+                        }
+                        else if(!imgObj)
+                        {
+                            resp.status=500;
+                            resp.message = "No Image Present";
+                        }
+                        else
+                            callback(null);
+                    });
+                },
+                function (callback) {
+                    if(parentCommentId){
+                        Comment.findOne({
+                            _id: parentCommentId,
+                            userId: req.userId,
+                            imgId : imgId
+                        },function (err,data) {
+                            if(err)
+                            {
+                                resp.status=500;
+                                resp.message = err;
+                            }
+                            else if(!data)
+                            {
+                                resp.status=500;
+                                resp.message = "No Data present on the comment!";
+                            }
+                            else
+                                callback(null);
+                        });
+                    }
+                    else
+                        callback(null);
+                },
+                function (callback) {
+                    let newComment = new Comment({
+                        imgId : imgId,
+                        userId : req.userId,
+                    });
+
+                    newComment.save(function (err,newComment) {
+                        if(err)
+                            callback(err);
+                        else if(newComment)
+                            callback(null,newComment)
+                    });
+                }
+            ], function (err, result) {
+                if(err)
+                {
+                    resp.status=500;
+                    resp.message = err;
+                }
+                else
+                {
+                    resp.status=200;
+                    resp.message = result;
+                }
+            });
+        }
+        else{
+            res.status(415).json({
+                info : "Unsupported Data type for Image Id"
+            })
+        }
+    }
+    catch (err) {
+        res.status(503).json(err);
+    }
+};
 
 router.retrieveComments = (req,res,next) => {
     try {

@@ -11,6 +11,8 @@ let mongoose = require('mongoose');
 
 let app = express();
 
+let imgRoutes = require('./routes/imgRoutes');
+
 //Models
 let User = require('./models/userSchema');
 let Img = require('./models/imgSchema');
@@ -43,9 +45,8 @@ io.on('connection',function(socket){
 
     socket.on('comment',function(data){
         try {
-            let commentData = new Comment(data);
-            commentData.save();
-            socket.broadcast.emit('comment',data);
+            let resp = imgRoutes.addCommentSocket(data);
+            socket.broadcast.emit('comment',resp);
         }
         catch (err) {
             socket.broadcast.emit('comment-error',err);
